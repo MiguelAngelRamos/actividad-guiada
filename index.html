@@ -1,613 +1,475 @@
-\<\!-- Chosen Palette: Indigo/Slate (Modern, Professional, Clean) --\>
-
-\<\!-- Application Structure Plan:
-The application is designed as an interactive "Learning Management System" (LMS) module specifically for this Selenium Workshop.
-Structure:
-1\.  **Sidebar Navigation:** Allows non-linear exploration of the steps, with visual indicators for "active" and "completed" states.
-2\.  **Main Content Area (Dynamic):**
-\-   **Dashboard View:** High-level summary, learning objectives, and a visual progress tracker (Chart.js) to gamify the experience.
-\-   **Step View:** Divided into "Concept" (Theory), "Implementation" (The Code), and "Developer Insights" (The technical analysis/diffs provided in the source).
-\-   **Code Viewer:** A distinct UI component to display the Python/Gherkin code clearly with file context.
-3\.  **Interaction Flow:** Users start at the Dashboard, navigate through steps 1-6. As they click "Mark as Complete", the progress chart updates dynamically.
-Why this structure? The source content is a sequential tutorial. Transforming it into a step-by-step interactive app reduces cognitive load, allows focus on specific files (conftest vs steps), and separates the "What to do" from the "Why it works" (Technical Analysis).
-\--\>
-
-\<\!-- Visualization & Content Choices:
-1\.  **Workshop Progress (Doughnut Chart):**
-\-   *Goal:* Inform & Motivate. Shows how much of the tutorial is completed.
-\-   *Lib:* Chart.js.
-\-   *Interaction:* Updates automatically when a user marks a step as done.
-2\.  **Code Blocks (HTML/CSS):**
-\-   *Goal:* Inform. Displays the source code clearly.
-\-   *Interaction:* "Copy to Clipboard" button (simulated).
-3\.  **Developer Insights (Toggleable Cards):**
-\-   *Goal:* Inform & Compare. Contains the "Technical Analysis" from the source report (Diffs).
-\-   *Interaction:* Hidden by default to reduce noise, expandable for deep divers.
-4\.  **Objective Checklist:**
-\-   *Goal:* Organize. Lists what the user will learn.
-\-   *Interaction:* Static list with dynamic styling.
-CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
-\--\>
-
-\<\!DOCTYPE html\>
-
-\<html lang="es"\>
-\<head\>
-\<meta charset="UTF-8"\>
-\<meta name="viewport" content="width=device-width, initial-scale=1.0"\>
-\<title\>Taller Selenium: Automatización de Registro\</title\>
-\<script src="[https://cdn.tailwindcss.com](https://www.google.com/search?q=https://cdn.tailwindcss.com)"\>\</script\>
-\<script src="[https://cdn.jsdelivr.net/npm/chart.js](https://www.google.com/search?q=https://cdn.jsdelivr.net/npm/chart.js)"\>\</script\>
-\<link href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css](https://www.google.com/search?q=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css)" rel="stylesheet"\>
-\<style\>
-/\* Custom Scrollbar \*/
-::-webkit-scrollbar {
-width: 8px;
-height: 8px;
-}
-::-webkit-scrollbar-track {
-background: \#f1f5f9;
-}
-::-webkit-scrollbar-thumb {
-background: \#cbd5e1;
-border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-background: \#94a3b8;
-}
-
-```
-    /* Chart Container Strict Styling */
-    .chart-container {
-        position: relative;
-        width: 100%;
-        max-width: 400px;
-        height: 300px;
-        margin: 0 auto;
-    }
-
-    /* Syntax Highlighting Simulation */
-    .code-keyword { color: #c678dd; } /* Purple */
-    .code-string { color: #98c379; }  /* Green */
-    .code-function { color: #61afef; } /* Blue */
-    .code-comment { color: #5c6370; font-style: italic; } /* Grey */
-    .code-decorator { color: #e5c07b; } /* Yellow */
-
-    .fade-in {
-        animation: fadeIn 0.3s ease-in-out;
-    }
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-</style>
-```
-
-\</head\>
-\<body class="bg-slate-50 text-slate-800 font-sans h-screen flex flex-col md:flex-row overflow-hidden"\>
-
-```
-<!-- Mobile Header -->
-<header class="md:hidden bg-indigo-600 text-white p-4 flex justify-between items-center shadow-md z-20">
-    <h1 class="font-bold text-lg">Selenium Workshop</h1>
-    <button id="mobile-menu-btn" class="text-white hover:text-indigo-200">
-        <i class="fas fa-bars text-xl"></i>
-    </button>
-</header>
-
-<!-- Sidebar Navigation -->
-<aside id="sidebar" class="bg-white w-full md:w-64 flex-shrink-0 border-r border-slate-200 flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-300 absolute md:relative h-full z-10">
-    <div class="p-6 border-b border-slate-100 bg-indigo-50">
-        <h2 class="text-xl font-bold text-indigo-700">Módulo Registro</h2>
-        <p class="text-xs text-slate-500 mt-1">Automatización E2E con Selenium</p>
-    </div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taller Selenium: Automatización de Registro</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para iconos -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js para el gráfico de progreso -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <nav class="flex-1 overflow-y-auto p-4 space-y-2">
-        <button onclick="app.loadStep('dashboard')" class="nav-item w-full text-left px-4 py-3 rounded-lg flex items-center space-x-3 hover:bg-slate-50 transition-colors group" data-id="dashboard">
-            <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                <i class="fas fa-home text-sm"></i>
+    <style>
+        /* Estilos personalizados para scroll y código */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .code-preview { background-color: #1e293b; color: #e2e8f0; font-family: 'Consolas', 'Monaco', monospace; }
+        .keyword { color: #c678dd; } /* Púrpura */
+        .string { color: #98c379; }  /* Verde */
+        .comment { color: #5c6370; font-style: italic; } /* Gris */
+        .function { color: #61afef; } /* Azul */
+        
+        .chart-container { position: relative; height: 200px; width: 200px; margin: 0 auto; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-50 h-screen flex overflow-hidden text-slate-800">
+
+    <!-- Sidebar de Navegación -->
+    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0 z-20 shadow-lg">
+        <div class="p-6 bg-indigo-600 text-white">
+            <h1 class="text-xl font-bold"><i class="fas fa-robot mr-2"></i>Selenium BDD</h1>
+            <p class="text-indigo-200 text-xs mt-1">Módulo: Registro de Usuarios</p>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto p-4 space-y-1" id="nav-container">
+            <!-- Los botones de navegación se generan dinámicamente -->
+        </nav>
+
+        <div class="p-4 bg-slate-50 border-t border-slate-200">
+            <div class="flex justify-between text-xs font-bold text-slate-500 mb-2">
+                <span>PROGRESO</span>
+                <span id="progress-text">0%</span>
             </div>
-            <span class="font-medium text-sm">Dashboard</span>
-        </button>
-
-        <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-6 mb-2 px-2">Pasos de Implementación</div>
-
-        <!-- Generated dynamically via JS -->
-        <div id="nav-steps-container" class="space-y-1"></div>
-    </nav>
-
-    <div class="p-4 border-t border-slate-100 bg-slate-50">
-        <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold text-slate-600">Progreso</span>
-            <span id="progress-text" class="text-xs font-bold text-indigo-600">0%</span>
+            <div class="w-full bg-slate-200 rounded-full h-2">
+                <div id="progress-bar" class="bg-indigo-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
         </div>
-        <div class="w-full bg-slate-200 rounded-full h-2">
-            <div id="progress-bar" class="bg-indigo-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+    </aside>
+
+    <!-- Área Principal de Contenido -->
+    <main class="flex-1 overflow-y-auto relative bg-slate-50">
+        <div class="max-w-5xl mx-auto p-8" id="content-area">
+            <!-- El contenido dinámico se carga aquí -->
         </div>
-    </div>
-</aside>
+    </main>
 
-<!-- Main Content -->
-<main class="flex-1 overflow-y-auto relative" id="main-scroll">
-    <div class="max-w-5xl mx-auto p-6 md:p-10 fade-in" id="content-area">
-        <!-- Content injected here -->
-    </div>
-</main>
+    <!-- JAVASCRIPT: Lógica de la Aplicación -->
+    <script>
+        // --- DATOS DEL TALLER ---
+        const workshopData = {
+            intro: {
+                id: 'intro',
+                title: 'Bienvenido al Taller',
+                icon: 'fa-home',
+                content: `
+                    <div class="text-center mb-10 fade-in">
+                        <h1 class="text-4xl font-bold text-slate-800 mb-4">Automatización del Registro</h1>
+                        <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+                            En esta actividad guiada, expandirás el framework de pruebas existente para cubrir una funcionalidad crítica: 
+                            <strong>El Registro de Nuevos Usuarios</strong>.
+                        </p>
+                    </div>
 
-<!-- JavaScript Application Logic -->
-<script>
-    // --- DATA STORE ---
-    const workshopData = {
-        dashboard: {
-            title: "Resumen de la Actividad",
-            type: "dashboard",
-            intro: "Bienvenido a la guía de implementación del módulo de Registro de Usuarios. Esta actividad está diseñada para expandir el framework de pruebas existente, cubriendo una funcionalidad crítica mediante BDD y Page Objects.",
-            objectives: [
-                "Crear archivos de características Gherkin (.feature).",
-                "Implementar Page Objects (.py) para el registro.",
-                "Refactorizar pasos comunes para reutilizar código.",
-                "Manejar estados del navegador (localStorage)."
-            ],
-            chartData: [0, 6] // [Completed, Remaining]
-        },
-        steps: [
-            {
-                id: "step1",
-                title: "Paso 1: Entorno",
-                shortTitle: "1. Limpieza",
-                icon: "fa-broom",
-                description: "Antes de crear la prueba, debemos asegurar un entorno limpio. La aplicación guarda usuarios en localStorage, lo que puede causar falsos positivos.",
-                file: "conftest.py",
-                action: "Modifica el fixture 'reset_between_test' para limpiar el LocalStorage.",
-                code: `@pytest.fixture(autouse=True)
-```
-
-def reset\_between\_test(selenium, base\_url):
-selenium.delete\_all\_cookies()
-selenium.get(f"{base\_url}/index.html")
-
-```
-# --- NUEVO CÓDIGO ---
-# Limpiamos localStorage para asegurar que cada test comience sin usuarios previos
-selenium.execute_script("window.localStorage.clear();")
-# --------------------
-
-yield`,
-                analysis: "<strong>Análisis Técnico:</strong> Anteriormente solo se borraban cookies. Se agregó <code>selenium.execute_script</code> porque la persistencia de usuarios en esta app específica reside en el LocalStorage. Sin esto, el test de 'usuario duplicado' fallaría si se ejecuta dos veces."
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 fade-in">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                            <h3 class="text-lg font-bold text-indigo-600 mb-4"><i class="fas fa-bullseye mr-2"></i>Objetivos</h3>
+                            <ul class="space-y-3 text-slate-600">
+                                <li class="flex items-start"><i class="fas fa-check text-emerald-500 mt-1 mr-2"></i> Crear archivos Gherkin (.feature).</li>
+                                <li class="flex items-start"><i class="fas fa-check text-emerald-500 mt-1 mr-2"></i> Implementar Page Objects (.py).</li>
+                                <li class="flex items-start"><i class="fas fa-check text-emerald-500 mt-1 mr-2"></i> Refactorizar pasos comunes.</li>
+                                <li class="flex items-start"><i class="fas fa-check text-emerald-500 mt-1 mr-2"></i> Manejar localStorage del navegador.</li>
+                            </ul>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col items-center justify-center">
+                            <div class="chart-container">
+                                <canvas id="progressChart"></canvas>
+                            </div>
+                            <button onclick="app.loadStep(0)" class="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-full transition-colors shadow-md shadow-indigo-200">
+                                Comenzar <i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                `
             },
-            {
-                id: "step2",
-                title: "Paso 2: BDD (Gherkin)",
-                shortTitle: "2. Features",
-                icon: "fa-file-lines",
-                description: "Definimos el comportamiento esperado usando lenguaje natural. Cubriremos dos escenarios: éxito y error por duplicidad.",
-                file: "features/register_user.feature",
-                action: "Crea este archivo nuevo en la carpeta features.",
-                code: `@registro
-```
-
+            steps: [
+                {
+                    title: "Paso 1: Entorno",
+                    subtitle: "Limpieza Profunda",
+                    desc: "La web guarda usuarios en localStorage. Debemos limpiarlo antes de cada test para evitar falsos positivos.",
+                    file: "conftest.py",
+                    code: `@pytest.fixture(autouse=True)
+def reset_between_test(selenium, base_url):
+    selenium.delete_all_cookies()
+    selenium.get(f"{base_url}/index.html")
+    
+    # --- NUEVO CÓDIGO ---
+    # Limpiamos localStorage para asegurar un estado limpio
+    selenium.execute_script("window.localStorage.clear();")
+    # --------------------
+    
+    yield`,
+                    analysis: "<strong>Por qué es crítico:</strong> Si ejecutas el test dos veces, la segunda vez fallará porque el usuario ya existe en el navegador. <code>selenium.execute_script</code> nos permite ejecutar JS nativo para limpiar la base de datos local."
+                },
+                {
+                    title: "Paso 2: BDD",
+                    subtitle: "Definición del Comportamiento",
+                    desc: "Creamos un nuevo archivo Gherkin para describir los escenarios de éxito y error.",
+                    file: "features/register_user.feature",
+                    code: `@registro
 Feature: Registro de Usuarios
-Como nuevo visitante
-Quiero crear una cuenta
-Para poder acceder a las ofertas exclusivas
+  Como nuevo visitante
+  Quiero crear una cuenta
+  Para poder acceder a las ofertas exclusivas
 
-Background:
-Given que estoy en la página de inicio
+  Background:
+    Given que estoy en la página de inicio
 
-Scenario: Registro de usuario exitoso
-Given que navego al formulario de registro
-When completo el registro con usuario "estudiante\_pro" y pass "123456"
-Then debería ver una alerta de éxito con el texto "Registro exitoso"
+  Scenario: Registro de usuario exitoso
+    Given que navego al formulario de registro
+    When completo el registro con usuario "estudiante_pro" y pass "123456"
+    Then debería ver una alerta de éxito con el texto "Registro exitoso"
 
-Scenario: Intento de registro con usuario existente
-Given que navego al formulario de registro
-When completo el registro con usuario "test" y pass "test"
-And debería ver una alerta de éxito con el texto "Registro exitoso"
-And navego al formulario de registro
-And completo el registro con usuario "test" y pass "test"
-Then debería ver una alerta de error con el texto "El usuario ya existe"` , analysis: "<strong>Estrategia de Prueba:</strong> Se utiliza el tag <code>@registro</code> para filtrar estas pruebas. El escenario de 'usuario existente' requiere crear primero el usuario y luego intentar crearlo de nuevo en la misma ejecución." }, { id: "step3", title: "Paso 3: Configuración", shortTitle: "3. Pytest.ini", icon: "fa-sliders", description: "Registramos el nuevo marcador para poder ejecutar estas pruebas de forma aislada.", file: "pytest.ini", action: "Agrega el marcador 'registro' a tu configuración.", code:  `[pytest]
-
-# ... (configuraciones previas)
+  Scenario: Intento de registro con usuario existente
+    Given que navego al formulario de registro
+    When completo el registro con usuario "test" y pass "test"
+    And debería ver una alerta de éxito con el texto "Registro exitoso"
+    And navego al formulario de registro
+    And completo el registro con usuario "test" y pass "test"
+    Then debería ver una alerta de error con el texto "El usuario ya existe"`,
+                    analysis: "<strong>Estrategia:</strong> Usamos el tag <code>@registro</code>. Nota cómo en el segundo escenario, primero creamos el usuario exitosamente y luego intentamos crearlo de nuevo para forzar el error."
+                },
+                {
+                    title: "Paso 3: Configuración",
+                    subtitle: "Registro de Markers",
+                    desc: "Registramos el tag @registro para evitar warnings y poder filtrar la ejecución.",
+                    file: "pytest.ini",
+                    code: `[pytest]
+# ... configuraciones previas ...
 
 # Markers
-
 markers =
-registro: Pruebas de registro` , analysis: "<strong>Gestión de Runners:</strong> Sin registrar el marcador, Pytest emitiría advertencias (warnings). Esto permite ejecutar <code>pytest -m registro</code>." }, { id: "step4", title: "Paso 4: Page Object", shortTitle: "4. Page Object", icon: "fa-code", description: "Abstraemos la interacción con el DOM en una clase dedicada. Esto encapsula los selectores y las acciones.", file: "pages/register_page.py", action: "Crea la clase RegisterPage heredando de BasePage.", code:  `from selenium.webdriver.common.by import By
-from pages.base\_page import BasePage
+    registro: Pruebas de registro`,
+                    analysis: "Esto permite ejecutar en la terminal: <code>python -m pytest -m registro</code> y correr solo estos tests nuevos."
+                },
+                {
+                    title: "Paso 4: Page Object",
+                    subtitle: "Abstracción (POM)",
+                    desc: "Creamos la clase que encapsula los selectores y acciones de la página de registro.",
+                    file: "pages/register_page.py",
+                    code: `from selenium.webdriver.common.by import By
+from pages.base_page import BasePage
 
 class RegisterPage(BasePage):
-\# --- LOCALIZADORES ---
-LINK\_TO\_REGISTER = (By.ID, "link-to-register")
-USERNAME\_INPUT = (By.ID, "reg-username")
-PASSWORD\_INPUT = (By.ID, "reg-password")
-REGISTER\_BTN = (By.ID, "btn-register")
+    # --- LOCALIZADORES ---
+    LINK_TO_REGISTER = (By.ID, "link-to-register")
+    USERNAME_INPUT = (By.ID, "reg-username")
+    PASSWORD_INPUT = (By.ID, "reg-password")
+    REGISTER_BTN = (By.ID, "btn-register")
 
-```
-# --- ACCIONES ---
+    # --- ACCIONES ---
 
-def go_to_register(self):
-    """Cambia la vista al formulario de registro"""
-    self.find_clickable(*self.LINK_TO_REGISTER).click()
+    def go_to_register(self):
+        """Cambia la vista al formulario"""
+        self.find_clickable(*self.LINK_TO_REGISTER).click()
 
-def register_user(self, username, password):
-    """Llena formulario y registra"""
-    username_field = self.find_element(*self.USERNAME_INPUT)
-    username_field.clear()
-    username_field.send_keys(username)
-
-    password_field = self.find_element(*self.PASSWORD_INPUT)
-    password_field.clear()
-    password_field.send_keys(password)
-
-    self.find_clickable(*self.REGISTER_BTN).click()`,
-                analysis: "<strong>Patrón POM:</strong> Separamos los locators (IDs) de la lógica. Nótese el uso de <code>*self.LOCATOR</code> para desempaquetar la tupla al llamar a <code>find_element</code>."
-            },
-            {
-                id: "step5",
-                title: "Paso 5: Refactorización",
-                shortTitle: "5. Refactor",
-                icon: "fa-rotate",
-                description: "Evitamos código duplicado moviendo pasos compartidos a un archivo común.",
-                file: "steps/common_steps.py",
-                action: "Mueve el paso 'Given que estoy en la página de inicio' aquí.",
-                code: `from pytest_bdd import given
-```
+    def register_user(self, username, password):
+        """Llena el formulario"""
+        # Limpiamos y escribimos
+        self.find_element(*self.USERNAME_INPUT).send_keys(username)
+        self.find_element(*self.PASSWORD_INPUT).send_keys(password)
+        
+        # Click
+        self.find_clickable(*self.REGISTER_BTN).click()`,
+                    analysis: "<strong>Buenas Prácticas:</strong> Separamos los IDs de la lógica. Si el ID cambia en el HTML, solo lo actualizamos aquí, no en los tests."
+                },
+                {
+                    title: "Paso 5: Refactor",
+                    subtitle: "Código Común",
+                    desc: "Movemos el paso de 'ir al home' a un archivo compartido para evitar duplicidad.",
+                    file: "steps/common_steps.py",
+                    code: `from pytest_bdd import given
 
 @given("que estoy en la página de inicio")
-def go\_to\_homepage(selenium):
-"""
-Paso inicial compartido. El navegador ya está en el index gracias
-al fixture 'reset\_between\_test' en conftest.py.
-"""
-pass` , analysis: "<strong>Análisis Técnico:</strong> Antes este paso estaba en <code>store_steps.py</code>. Al necesitarlo ahora en <code>register_steps.py</code>, moverlo a <code>common_steps.py</code> evita referencias circulares o duplicación de código." }, { id: "step6", title: "Paso 6: Steps & Lógica", shortTitle: "6. Steps", icon: "fa-shoe-prints", description: "Conectamos Gherkin con Python. Implementamos lógica dinámica para garantizar usuarios únicos.", file: "steps/register_steps.py", action: "Implementa la lógica de prueba utilizando time.time() para unicidad.", code:  `from pytest\_bdd import scenario, given, when, then, parsers
-from pages.register\_page import RegisterPage
+def go_to_homepage(selenium):
+    """
+    Paso inicial compartido. El navegador ya está en el index gracias
+    al fixture 'reset_between_test' en conftest.py.
+    """
+    pass`,
+                    analysis: "<strong>Arquitectura:</strong> Antes este paso estaba en <code>store_steps.py</code>. Al necesitarlo ahora en <code>register_steps.py</code>, moverlo a <code>common_steps.py</code> evita dependencias circulares."
+                },
+                {
+                    title: "Paso 6: Steps",
+                    subtitle: "Implementación Lógica",
+                    desc: "Conectamos Gherkin con Python. Usamos timestamps para usuarios únicos.",
+                    file: "steps/register_steps.py",
+                    code: `from pytest_bdd import scenario, given, when, then, parsers
+from pages.register_page import RegisterPage
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected\_conditions as EC
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 import time
 
-# \--- ENLACE CON ESCENARIOS ---
-
-@scenario('../features/register\_user.feature', 'Registro de usuario exitoso')
-def test\_register\_success(): pass
-
-@scenario('../features/register\_user.feature', 'Intento de registro con usuario existente')
-def test\_register\_fail(): pass
-
-# \--- PASOS ---
-
-@given("que navego al formulario de registro")
-@when("navego al formulario de registro")
-def go\_to\_reg\_form(selenium):
-page = RegisterPage(selenium, "")
-page.go\_to\_register()
+# ... Scenarios omitidos por brevedad ...
 
 @when(parsers.parse('completo el registro con usuario "{user}" y pass "{password}"'))
-def complete\_registration(selenium, user, password):
-page = RegisterPage(selenium, "")
+def complete_registration(selenium, user, password):
+    page = RegisterPage(selenium, "")
+    
+    # Lógica para garantizar unicidad
+    if user == "test":
+        unique_user = "test"
+    else:
+        # Agregamos timestamp: usuario_17089123
+        unique_user = f"{user}_{int(time.time())}"
 
-```
-# Lógica para garantizar unicidad
-if user == "test":
-    unique_user = "test"
-else:
-    unique_user = f"{user}_{int(time.time())}"
+    page.register_user(unique_user, password)
 
-page.register_user(unique_user, password)
-```
+@then(parsers.parse('debería ver una alerta de éxito con el texto "{texto_esperado}"'))
+def verify_success_alert(selenium, texto_esperado):
+    # Manejo de Alerta Nativa
+    WebDriverWait(selenium, 5).until(EC.alert_is_present())
+    alert = selenium.switch_to.alert
+    assert texto_esperado in alert.text
+    alert.accept()`,
+                    analysis: "<strong>Idempotencia:</strong> El uso de <code>time.time()</code> garantiza que cada ejecución use un usuario nuevo, evitando fallos por duplicados en el test de éxito."
+                }
+            ]
+        };
 
-@then(parsers.parse('debería ver una alerta de éxito con el texto "{texto\_esperado}"'))
-@when(parsers.parse('debería ver una alerta de éxito con el texto "{texto\_esperado}"'))
-def verify\_success\_alert(selenium, texto\_esperado):
-WebDriverWait(selenium, 5).until(EC.alert\_is\_present())
-alert = selenium.switch\_to.alert
-assert texto\_esperado in alert.text
-alert.accept()
+        // --- LÓGICA DEL APP ---
+        const app = {
+            currentState: 'intro', // 'intro' o index numérico
+            completedSteps: new Set(),
+            chart: null,
 
-```
-WebDriverWait(selenium, 3).until(
-    EC.visibility_of_element_located((By.ID, "login-box"))
-)
-```
+            init() {
+                this.renderNav();
+                this.loadContent('intro');
+                this.initChart();
+            },
 
-@then(parsers.parse('debería ver una alerta de error con el texto "{texto\_esperado}"'))
-def verify\_error\_alert(selenium, texto\_esperado):
-WebDriverWait(selenium, 5).until(EC.alert\_is\_present())
-alert = selenium.switch\_to.alert
-assert texto\_esperado in alert.text
-alert.accept()\`,
-analysis: "\<strong\>Lógica Crítica:\</strong\> Se introdujo el timestamp \<code\>int(time.time())\</code\> para generar usuarios únicos dinámicamente. También se manejan las alertas nativas con \<code\>switch\_to.alert\</code\>, ya que la web usa \<code\>window.alert()\</code\>."
-}
-]
-};
+            // Renderiza la barra lateral
+            renderNav() {
+                const container = document.getElementById('nav-container');
+                container.innerHTML = `
+                    <button onclick="app.loadContent('intro')" class="w-full text-left px-4 py-3 rounded-lg mb-2 flex items-center transition-colors ${this.currentState === 'intro' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}">
+                        <i class="fas fa-home w-6 text-center mr-2"></i> Inicio
+                    </button>
+                    <div class="border-t border-slate-100 my-2"></div>
+                `;
 
-```
-    // --- STATE MANAGEMENT ---
-    const app = {
-        completedSteps: new Set(),
-        currentStepId: 'dashboard',
-        chartInstance: null,
+                workshopData.steps.forEach((step, index) => {
+                    const isCompleted = this.completedSteps.has(index);
+                    const isActive = this.currentState === index;
+                    
+                    let btnClass = "w-full text-left px-4 py-3 rounded-lg mb-1 flex items-center justify-between transition-colors ";
+                    if (isActive) btnClass += "bg-indigo-50 text-indigo-700 font-bold ring-1 ring-indigo-200";
+                    else btnClass += "text-slate-600 hover:bg-slate-50";
 
-        init() {
-            this.renderNav();
-            this.loadStep('dashboard');
-            this.setupMobileMenu();
-        },
-
-        setupMobileMenu() {
-            const btn = document.getElementById('mobile-menu-btn');
-            const sidebar = document.getElementById('sidebar');
-            btn.addEventListener('click', () => {
-                sidebar.classList.toggle('-translate-x-full');
-            });
-        },
-
-        renderNav() {
-            const container = document.getElementById('nav-steps-container');
-            container.innerHTML = workshopData.steps.map((step, index) => `
-                <button onclick="app.loadStep('${step.id}')" 
-                    class="nav-item w-full text-left px-4 py-3 rounded-lg flex items-center justify-between hover:bg-slate-50 transition-colors group ${this.currentStepId === step.id ? 'bg-slate-50 ring-1 ring-indigo-200' : ''}" 
-                    data-id="${step.id}">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 rounded-full ${this.completedSteps.has(step.id) ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'} flex items-center justify-center transition-colors">
-                            <i class="fas ${this.completedSteps.has(step.id) ? 'fa-check' : step.icon} text-sm"></i>
-                        </div>
-                        <span class="font-medium text-sm text-slate-600 group-hover:text-indigo-600">${step.shortTitle}</span>
-                    </div>
-                </button>
-            `).join('');
-        },
-
-        loadStep(id) {
-            this.currentStepId = id;
-            const contentArea = document.getElementById('content-area');
-            
-            // Update Nav Highlighting
-            document.querySelectorAll('.nav-item').forEach(el => {
-                if(el.dataset.id === id) el.classList.add('bg-slate-50', 'ring-1', 'ring-indigo-200');
-                else el.classList.remove('bg-slate-50', 'ring-1', 'ring-indigo-200');
-            });
-
-            // Render Content
-            if (id === 'dashboard') {
-                this.renderDashboard(contentArea);
-            } else {
-                const step = workshopData.steps.find(s => s.id === id);
-                this.renderStep(contentArea, step);
-            }
-        },
-
-        renderDashboard(container) {
-            container.innerHTML = `
-                <div class="mb-8 fade-in">
-                    <h1 class="text-3xl font-bold text-slate-800 mb-2">${workshopData.dashboard.title}</h1>
-                    <p class="text-slate-600 text-lg">${workshopData.dashboard.intro}</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 fade-in">
-                    <!-- Objectives Card -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <h2 class="text-lg font-bold text-indigo-700 mb-4 flex items-center">
-                            <i class="fas fa-bullseye mr-2"></i> Objetivos de Aprendizaje
-                        </h2>
-                        <ul class="space-y-3">
-                            ${workshopData.dashboard.objectives.map(obj => `
-                                <li class="flex items-start text-slate-600">
-                                    <i class="fas fa-check-circle text-emerald-500 mt-1 mr-3"></i>
-                                    <span>${obj}</span>
-                                </li>
-                            `).join('')}
-                        </ul>
-                        <div class="mt-8 pt-6 border-t border-slate-100">
-                            <button onclick="app.loadStep('step1')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center">
-                                Comenzar Taller <i class="fas fa-arrow-right ml-2"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Progress Chart -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center">
-                        <h2 class="text-lg font-bold text-slate-700 mb-4">Progreso del Taller</h2>
-                        <div class="chart-container">
-                            <canvas id="progressChart"></canvas>
-                        </div>
-                        <p class="text-center text-sm text-slate-500 mt-4">Completa los pasos para actualizar la gráfica.</p>
-                    </div>
-                </div>
-                
-                <div class="mt-8 bg-indigo-50 border border-indigo-100 rounded-xl p-6 fade-in">
-                    <h3 class="font-bold text-indigo-800 mb-2">Comando de Ejecución</h3>
-                    <p class="text-indigo-600 text-sm mb-3">Al finalizar todos los pasos, ejecuta el siguiente comando en tu terminal:</p>
-                    <div class="bg-slate-900 text-slate-200 p-4 rounded-lg font-mono text-sm flex justify-between items-center">
-                        <span>python -m pytest -m registro -v</span>
-                        <button onclick="navigator.clipboard.writeText('python -m pytest -m registro -v')" class="text-slate-500 hover:text-white transition-colors" title="Copiar">
-                            <i class="far fa-copy"></i>
+                    container.innerHTML += `
+                        <button onclick="app.loadStep(${index})" class="${btnClass}">
+                            <div class="flex items-center">
+                                <span class="w-6 text-center mr-2 text-xs font-bold ${isActive ? 'text-indigo-500' : 'text-slate-400'}">${index + 1}</span>
+                                <span class="text-sm truncate">${step.title}</span>
+                            </div>
+                            ${isCompleted ? '<i class="fas fa-check-circle text-emerald-500 text-xs"></i>' : ''}
                         </button>
-                    </div>
-                </div>
-            `;
-            this.initChart();
-        },
+                    `;
+                });
+            },
 
-        renderStep(container, step) {
-            const isCompleted = this.completedSteps.has(step.id);
-            
-            // Format code for "highlighting"
-            const highlightedCode = this.syntaxHighlight(step.code);
+            // Carga Intro o Pasos
+            loadContent(type) {
+                this.currentState = type;
+                this.renderNav();
+                const container = document.getElementById('content-area');
+                
+                if (type === 'intro') {
+                    container.innerHTML = workshopData.intro.content;
+                    // Pequeño timeout para que el canvas exista antes de pintar el chart
+                    setTimeout(() => {
+                        this.initChart(); // Reiniciar chart en intro
+                        this.updateChart();
+                    }, 50);
+                }
+            },
 
-            container.innerHTML = `
-                <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 fade-in">
-                    <div>
-                        <span class="text-indigo-600 font-bold text-xs uppercase tracking-wider">Actividad Guiada</span>
-                        <h1 class="text-2xl font-bold text-slate-800">${step.title}</h1>
-                    </div>
-                    <button onclick="app.toggleComplete('${step.id}')" class="${isCompleted ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-white text-slate-600 border-slate-300'} border font-semibold py-2 px-4 rounded-lg transition-all flex items-center mt-4 md:mt-0">
-                        <i class="fas ${isCompleted ? 'fa-check-circle' : 'fa-circle'} mr-2"></i>
-                        ${isCompleted ? 'Completado' : 'Marcar como Completado'}
-                    </button>
-                </div>
+            loadStep(index) {
+                this.currentState = index;
+                this.renderNav();
+                const step = workshopData.steps[index];
+                const container = document.getElementById('content-area');
+                const isLast = index === workshopData.steps.length - 1;
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 fade-in">
-                    <!-- Left Col: Instructions -->
-                    <div class="lg:col-span-1 space-y-6">
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <h3 class="font-bold text-slate-700 mb-2"><i class="fas fa-info-circle text-indigo-500 mr-2"></i>Contexto</h3>
-                            <p class="text-slate-600 text-sm leading-relaxed">${step.description}</p>
-                        </div>
+                // Formateo simple de sintaxis
+                const prettyCode = this.syntaxHighlight(step.code);
 
-                        <div class="bg-indigo-50 p-5 rounded-xl border border-indigo-100 shadow-sm">
-                            <h3 class="font-bold text-indigo-800 mb-2"><i class="fas fa-keyboard mr-2"></i>Acción Requerida</h3>
-                            <p class="text-indigo-900 text-sm font-medium mb-2">Archivo: <span class="font-mono bg-white px-1 rounded border border-indigo-200">${step.file}</span></p>
-                            <p class="text-indigo-700 text-sm">${step.action}</p>
-                        </div>
-
-                        <!-- Developer Insights Toggle -->
-                        <div class="border border-amber-200 bg-amber-50 rounded-xl overflow-hidden">
-                            <button onclick="document.getElementById('analysis-${step.id}').classList.toggle('hidden')" class="w-full flex items-center justify-between p-4 text-amber-800 font-bold text-sm hover:bg-amber-100 transition-colors">
-                                <span><i class="fas fa-lightbulb mr-2"></i>Insight Técnico</span>
-                                <i class="fas fa-chevron-down text-xs"></i>
+                container.innerHTML = `
+                    <div class="fade-in">
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <h2 class="text-xs font-bold text-indigo-500 uppercase tracking-wide mb-1">${step.title}</h2>
+                                <h1 class="text-3xl font-bold text-slate-800">${step.subtitle}</h1>
+                            </div>
+                            <button onclick="app.toggleComplete(${index})" class="flex items-center px-4 py-2 rounded-lg border transition-all ${this.completedSteps.has(index) ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50'}">
+                                <i class="fas ${this.completedSteps.has(index) ? 'fa-check-circle' : 'fa-circle'} mr-2"></i>
+                                ${this.completedSteps.has(index) ? 'Completado' : 'Marcar como Hecho'}
                             </button>
-                            <div id="analysis-${step.id}" class="hidden p-4 bg-white border-t border-amber-100 text-sm text-slate-600">
-                                ${step.analysis}
+                        </div>
+
+                        <p class="text-slate-600 mb-6 text-lg border-l-4 border-indigo-400 pl-4 bg-white py-2 rounded-r shadow-sm">
+                            ${step.desc}
+                        </p>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                            <div class="lg:col-span-2">
+                                <div class="bg-slate-800 rounded-t-lg px-4 py-2 flex justify-between items-center">
+                                    <span class="text-slate-400 text-xs font-mono"><i class="fas fa-file-code mr-2"></i>${step.file}</span>
+                                    <button onclick="app.copyToClipboard(this)" class="text-slate-400 hover:text-white text-xs"><i class="far fa-copy"></i> Copiar</button>
+                                </div>
+                                <pre class="code-preview p-4 overflow-x-auto rounded-b-lg shadow-lg text-sm leading-relaxed"><code>${prettyCode}</code></pre>
+                            </div>
+
+                            <div class="lg:col-span-1 space-y-4">
+                                <div class="bg-amber-50 border border-amber-200 rounded-lg p-5 shadow-sm">
+                                    <h3 class="font-bold text-amber-800 mb-2 flex items-center"><i class="fas fa-lightbulb mr-2"></i> Insight Técnico</h3>
+                                    <div class="text-sm text-amber-900 leading-relaxed">
+                                        ${step.analysis}
+                                    </div>
+                                </div>
+                                <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+                                    <h3 class="font-bold text-slate-700 mb-2 text-sm">Acciones</h3>
+                                    <ul class="text-sm text-slate-600 space-y-2">
+                                        <li><i class="fas fa-angle-right text-indigo-500 mr-2"></i>Abrir <code>${step.file}</code></li>
+                                        <li><i class="fas fa-angle-right text-indigo-500 mr-2"></i>Pegar el código</li>
+                                        <li><i class="fas fa-angle-right text-indigo-500 mr-2"></i>Guardar cambios</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Right Col: Code -->
-                    <div class="lg:col-span-2">
-                        <div class="bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-700">
-                            <div class="bg-slate-800 px-4 py-2 flex items-center justify-between border-b border-slate-700">
-                                <span class="text-slate-400 text-xs font-mono"><i class="fas fa-file-code mr-2"></i>${step.file}</span>
-                                <button onclick="app.copyCode(\`${step.code.replace(/`/g, '\\`')}\`)" class="text-slate-400 hover:text-white text-xs transition-colors flex items-center">
-                                    <i class="far fa-copy mr-1"></i> Copiar
-                                </button>
-                            </div>
-                            <pre class="p-4 text-sm font-mono text-slate-300 overflow-x-auto"><code>${highlightedCode}</code></pre>
+                        <div class="flex justify-between mt-8 pt-6 border-t border-slate-200">
+                            <button onclick="app.loadStep(${index - 1})" ${index === 0 ? 'disabled class="opacity-0"' : ''} class="text-slate-500 hover:text-indigo-600 font-medium">
+                                <i class="fas fa-arrow-left mr-2"></i> Anterior
+                            </button>
+                            ${isLast ? 
+                                `<button onclick="alert('¡Felicidades! Has completado el taller. Ejecuta: python -m pytest -m registro -v')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-lg shadow-md shadow-emerald-200 transition-colors">
+                                    Finalizar Taller <i class="fas fa-flag-checkered ml-2"></i>
+                                </button>` : 
+                                `<button onclick="app.loadStep(${index + 1})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg shadow-md shadow-indigo-200 transition-colors">
+                                    Siguiente Paso <i class="fas fa-arrow-right ml-2"></i>
+                                </button>`
+                            }
                         </div>
                     </div>
-                </div>
+                `;
+            },
 
-                <!-- Navigation Footer -->
-                <div class="mt-10 flex justify-between items-center pt-6 border-t border-slate-200 fade-in">
-                    <button onclick="app.prevStep('${step.id}')" class="text-slate-500 hover:text-indigo-600 font-medium text-sm flex items-center transition-colors">
-                        <i class="fas fa-arrow-left mr-2"></i> Anterior
-                    </button>
-                    <button onclick="app.nextStep('${step.id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition-colors flex items-center">
-                        Siguiente <i class="fas fa-arrow-right ml-2"></i>
-                    </button>
-                </div>
-            `;
-        },
+            // Utilidades
+            toggleComplete(index) {
+                if (this.completedSteps.has(index)) {
+                    this.completedSteps.delete(index);
+                } else {
+                    this.completedSteps.add(index);
+                }
+                this.loadStep(index); // Re-render para actualizar botón
+                this.updateProgress();
+            },
 
-        initChart() {
-            const ctx = document.getElementById('progressChart').getContext('2d');
-            const completedCount = this.completedSteps.size;
-            const totalCount = workshopData.steps.length;
-            
-            this.chartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Completado', 'Pendiente'],
-                    datasets: [{
-                        data: [completedCount, totalCount - completedCount],
-                        backgroundColor: ['#4f46e5', '#e2e8f0'], // Indigo-600, Slate-200
-                        borderWidth: 0,
-                        hoverOffset: 4
+            updateProgress() {
+                const total = workshopData.steps.length;
+                const done = this.completedSteps.size;
+                const percent = Math.round((done / total) * 100);
+                
+                document.getElementById('progress-bar').style.width = `${percent}%`;
+                document.getElementById('progress-text').innerText = `${percent}%`;
+                
+                this.updateChart();
+            },
+
+            initChart() {
+                const ctx = document.getElementById('progressChart');
+                if (!ctx) return;
+                
+                if (this.chart) this.chart.destroy();
+                
+                this.chart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Completado', 'Pendiente'],
+                        datasets: [{
+                            data: [0, workshopData.steps.length],
+                            backgroundColor: ['#6366f1', '#e2e8f0'],
+                            borderWidth: 0,
+                            cutout: '75%'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                    },
+                    plugins: [{
+                        id: 'textCenter',
+                        beforeDraw: function(chart) {
+                            var width = chart.width, height = chart.height, ctx = chart.ctx;
+                            ctx.restore();
+                            var fontSize = (height / 100).toFixed(2);
+                            ctx.font = "bold " + fontSize + "em sans-serif";
+                            ctx.textBaseline = "middle";
+                            ctx.fillStyle = "#334155";
+                            var text = Math.round((app.completedSteps.size / workshopData.steps.length) * 100) + "%",
+                                textX = Math.round((width - ctx.measureText(text).width) / 2),
+                                textY = height / 2;
+                            ctx.fillText(text, textX, textY);
+                            ctx.save();
+                        }
                     }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '70%',
-                    plugins: {
-                        legend: { position: 'bottom', labels: { usePointStyle: true, font: { family: 'sans-serif' } } },
-                        tooltip: { enabled: false }
-                    }
-                },
-                plugins: [{
-                    id: 'textCenter',
-                    beforeDraw: function(chart) {
-                        var width = chart.width, height = chart.height, ctx = chart.ctx;
-                        ctx.restore();
-                        var fontSize = (height / 114).toFixed(2);
-                        ctx.font = "bold " + fontSize + "em sans-serif";
-                        ctx.textBaseline = "middle";
-                        ctx.fillStyle = "#1e293b";
-                        var text = Math.round((completedCount / totalCount) * 100) + "%",
-                            textX = Math.round((width - ctx.measureText(text).width) / 2),
-                            textY = height / 2.3; // Adjusted slightly up
-                        ctx.fillText(text, textX, textY);
-                        ctx.save();
-                    }
-                }]
-            });
-        },
+                });
+            },
 
-        toggleComplete(id) {
-            if (this.completedSteps.has(id)) {
-                this.completedSteps.delete(id);
-            } else {
-                this.completedSteps.add(id);
+            updateChart() {
+                if (!this.chart) return;
+                const done = this.completedSteps.size;
+                const total = workshopData.steps.length;
+                this.chart.data.datasets[0].data = [done, total - done];
+                this.chart.update();
+            },
+
+            copyToClipboard(btn) {
+                const code = btn.parentElement.nextElementSibling.innerText;
+                navigator.clipboard.writeText(code);
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copiado';
+                btn.classList.add('text-emerald-400');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('text-emerald-400');
+                }, 2000);
+            },
+
+            syntaxHighlight(code) {
+                return code
+                    .replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                    .replace(/(".+?")/g, '<span class="string">$1</span>')
+                    .replace(/(#.+)/g, '<span class="comment">$1</span>')
+                    .replace(/\b(def|class|from|import|return|yield|if|else|pass|@\w+)\b/g, '<span class="keyword">$1</span>')
+                    .replace(/\b([a-zA-Z_]\w*)(?=\()/g, '<span class="function">$1</span>');
             }
-            this.renderNav();
-            this.updateProgress();
-            this.loadStep(id); // Re-render to show state change
-        },
+        };
 
-        updateProgress() {
-            const total = workshopData.steps.length;
-            const completed = this.completedSteps.size;
-            const percent = Math.round((completed / total) * 100);
-            
-            // Update Sidebar
-            document.getElementById('progress-bar').style.width = `${percent}%`;
-            document.getElementById('progress-text').innerText = `${percent}%`;
-        },
-
-        nextStep(currentId) {
-            const idx = workshopData.steps.findIndex(s => s.id === currentId);
-            if (idx < workshopData.steps.length - 1) {
-                this.loadStep(workshopData.steps[idx + 1].id);
-                document.getElementById('main-scroll').scrollTop = 0;
-            } else {
-                alert("¡Has llegado al final de la guía!");
-            }
-        },
-
-        prevStep(currentId) {
-            const idx = workshopData.steps.findIndex(s => s.id === currentId);
-            if (idx > 0) {
-                this.loadStep(workshopData.steps[idx - 1].id);
-            } else {
-                this.loadStep('dashboard');
-            }
-            document.getElementById('main-scroll').scrollTop = 0;
-        },
-
-        copyCode(text) {
-            navigator.clipboard.writeText(text);
-            alert("Código copiado al portapapeles");
-        },
-
-        // Simple syntax highlighter for display purposes
-        syntaxHighlight(code) {
-            let html = code
-                .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-                .replace(/(".+?")/g, '<span class="code-string">$1</span>') // Strings
-                .replace(/(#.+)/g, '<span class="code-comment">$1</span>') // Comments
-                .replace(/\b(def|class|from|import|return|yield|if|else|pass)\b/g, '<span class="code-keyword">$1</span>') // Keywords
-                .replace(/(@\w+)/g, '<span class="code-decorator">$1</span>') // Decorators
-                .replace(/\b([a-zA-Z_]\w*)(?=\()/g, '<span class="code-function">$1</span>'); // Function calls
-            return html;
-        }
-    };
-
-    // Initialize App
-    document.addEventListener('DOMContentLoaded', () => {
+        // Iniciar
         app.init();
-    });
-</script>
-```
-
-\</body\>
-\</html\>
+    </script>
+</body>
+</html>
